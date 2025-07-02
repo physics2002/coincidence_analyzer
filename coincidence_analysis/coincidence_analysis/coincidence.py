@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import pandas as pd
+import numpy as np
 
 class CoincidenceAnalyzer:
     def __init__(self, detector_df: pd.DataFrame, channel_a: int = 0, channel_b: int = 1):
@@ -75,3 +76,49 @@ class CoincidenceAnalyzer:
         
         n_coincidences = len(self.find_coincidences(coincidence_window_ns))
         return n_coincidences / total_time_s if total_time_s > 0 else 0.0
+    
+    def delta_t_distribution(
+        self,
+        max_time_diff_ns: float = 200.0,
+        energy_range_a: Tuple[int, int] = None,
+        energy_range_b: Tuple[int, int] = None,
+        bins: int = 200
+    ) -> np.ndarray:
+        """
+        Returns an array of delta_t values (in ns) between all events from channel_a and channel_b
+        within the given max_time_diff window. Used for visualizing the Δt histogram.
+        """
+        window_s = max_time_diff_ns * 1e-9
+
+        df_a = self.df[self.df["channel"] == self.ch_a]
+        df_b = self.df[self.df["channel"] == self.ch_b]
+
+        # Apply energy filters if needed
+        if energy_range_a:
+            min_a, max_a = energy_range_a
+            df_a = df_a[(df_a["energy"] >= min_a) & (df_a["energy"] <= max_a)]
+        if energy_range_b:
+            min_b, max_b = energy_range_b
+            df_b = df_b[(df_b["energy"] >= min_b) & (df_b["energy"] <= max_b)]
+
+        df_a = df_a.reset_index(drop=True)
+        df_b = df_b.reset_index(drop=True)
+
+        i, j = 0, 0
+        delta_ts = []
+
+        while i < len(df_a) and j < len(df_b):
+            t_a = df_a.loc[i, "time_s"]
+            t_b = df_b.loc[j, "time_s"]
+            delta = t_a - t_b  # positive = A is later than B
+
+            if abs(delta) <= window_s:
+                delta_ts.append(delta * 1e9)  # convert to ns
+                i += 1
+                j += 1
+            elif delta < -window_s:
+                i += 1
+            else:
+                j += 1
+
+        return np.array(delta_ts)

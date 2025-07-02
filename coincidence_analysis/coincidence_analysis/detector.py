@@ -12,7 +12,7 @@ class DetectorEvent:
 class DetectorData:
     def __init__(self, file_path: str):
         self.file_path = file_path
-        self.df, self.metadata = self._load_listmode_file(file_path)
+        self.df = self._load_listmode_file(file_path)
 
     def _load_listmode_file(self, filepath: str) -> Tuple[pd.DataFrame, dict]:
         with open(filepath, 'r') as f:
@@ -21,14 +21,7 @@ class DetectorData:
         header_lines = [line.strip() for line in lines if line.startswith("#")]
         data_lines = [line.strip() for line in lines if not line.startswith("#")]
 
-        metadata = {}
-        for line in header_lines:
-            if "Sample interval" in line:
-                metadata["sample_interval_ns"] = float(line.split(":")[1].split()[0])
-            elif "Gate length" in line:
-                parts = line.split(":")[1].strip().split()
-                metadata["gate_ch0"] = int(parts[1])
-                metadata["gate_ch1"] = int(parts[3])
+        print(header_lines)
 
         # Create DataFrame from listmode data
         df = pd.DataFrame(
@@ -42,10 +35,7 @@ class DetectorData:
             "psd": int
         })
 
-        return df, metadata
-
-    def get_metadata(self) -> dict:
-        return self.metadata
+        return df
 
     def get_events(self) -> List[DetectorEvent]:
         return [
