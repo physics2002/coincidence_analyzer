@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 import pandas as pd
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 
 def plot_energy_spectrum(df: pd.DataFrame, channel: int = 0, bins: int = 200, energy_range: Tuple[int, int] = None):
     """
@@ -20,7 +20,13 @@ def plot_energy_spectrum(df: pd.DataFrame, channel: int = 0, bins: int = 200, en
     plt.tight_layout()
     plt.show()
 
-def select_energy_range(df: pd.DataFrame, channel: int = 0, bins: int = 200, energy_range: Tuple[int, int] = None) -> tuple:
+def select_energy_range(
+        df: pd.DataFrame,
+        channel: int = 0,
+        bins: int = 200, 
+        energy_range: Tuple[int, int] = None, 
+        coincidences: List[Tuple[pd.Series, pd.Series]] = None
+    ) -> tuple:
     """
     Plot interactive energy spectrum where user can select a range by dragging.
     Returns:
@@ -31,6 +37,18 @@ def select_energy_range(df: pd.DataFrame, channel: int = 0, bins: int = 200, ene
     fig, ax = plt.subplots(figsize=(8, 4))
     energy = df[df["channel"] == channel]["energy"]
     ax.hist(energy, bins=bins, range=energy_range, alpha=0.7, label=f"Channel {channel}")
+
+    if coincidences is not None:
+        coincidence_energies = np.array([pair[channel]["energy"] for pair in coincidences])
+        ax.hist(
+            coincidence_energies,
+            bins=bins,
+            range=energy_range,
+            alpha=0.5,
+            color="red",
+            label="Coincidence spectrum"
+        )
+
     ax.set_title(f"Select energy range for channel {channel}")
     ax.set_xlabel("Energy")
     ax.set_yscale("log")

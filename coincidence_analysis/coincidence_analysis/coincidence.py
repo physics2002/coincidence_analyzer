@@ -81,8 +81,7 @@ class CoincidenceAnalyzer:
         self,
         max_time_diff_ns: float = 200.0,
         energy_range_a: Tuple[int, int] = None,
-        energy_range_b: Tuple[int, int] = None,
-        bins: int = 200
+        energy_range_b: Tuple[int, int] = None
     ) -> np.ndarray:
         """
         Returns an array of delta_t values (in ns) between all events from channel_a and channel_b
