@@ -9,6 +9,7 @@ from coincidence_analysis.plotting import (
     plot_energy_spectrum, select_energy_range, select_time_window, plot_count_rates
 )
 from coincidence_analysis.utils import compute_count_rate, get_times_in_energy_range
+from coincidence_analysis.analysis import exponential_decay, fit_decay_curve, integrate_counts
 
 def load_data(signal_path, background_path):
     signal = DetectorData(signal_path)
@@ -61,13 +62,17 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, bg_coinciden
     background_ch1 = compute_count_rate(bg_ch1_times, bin_width_s=bin_width_s)
     background_coinc = compute_count_rate(bg_coin_times, bin_width_s=bin_width_s)
 
+    # Fit decay curves
+    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=134.7, time_window=(21, 600))
+
     plot_count_rates(
         signal_ch0=signal_ch0,
         signal_ch1=signal_ch1,
         signal_coinc=signal_coinc,
         background_ch0=background_ch0,
         background_ch1=background_ch1,
-        background_coinc=background_coinc
+        background_coinc=background_coinc,
+        fit_func_ch0=exponential_decay, popt_ch0=popt_ch0
     )
 
 def main():
