@@ -1,6 +1,5 @@
-from typing import List, Tuple
+from typing import Tuple, Optional
 import pandas as pd
-import numpy as np
 
 class CoincidenceAnalyzer:
     def __init__(self, detector_df: pd.DataFrame, channel_a: int = 0, channel_b: int = 1):
@@ -12,59 +11,66 @@ class CoincidenceAnalyzer:
         self.ch_a = channel_a
         self.ch_b = channel_b
 
-    def find_coincidences(
+    def _get_filtered(self, channel: int, energy_range: Tuple[int, int] = None) -> pd.DataFrame:
+        df = self.df[self.df["channel"] == channel]
+        if energy_range:
+            min_e, max_e = energy_range
+            df = df[(df["energy"] >= min_e) & (df["energy"] <= max_e)]
+        return df.reset_index(drop=True)
+
+    def coincidence_search(
         self,
-        dt_window_ns: Tuple[float, float],
+        dt_window_ns: Tuple[float, float] = (-200, 200),
         energy_range_a: Tuple[int, int] = None,
         energy_range_b: Tuple[int, int] = None,
-    ) -> List[Tuple[pd.Series, pd.Series]]:
+        return_delta_t: bool = False
+    ):
         """
-        Finds coincidence pairs between channel_a and channel_b where:
-            dt_window_ns[0] <= (t_a - t_b) * 1e9 <= dt_window_ns[1]
-
-        Args:
-            dt_window_ns: (min_dt, max_dt) in nanoseconds.
-            energy_range_a: Optional (min_energy, max_energy) for channel_a.
-            energy_range_b: Optional (min_energy, max_energy) for channel_b.
-
-        Returns:
-            List of coincident (event_a, event_b) pairs.
+        Finds coincidence pairs or delta_t values between channel_a and channel_b.
+        If return_delta_t is True, returns array of delta_t (ns) for all pairs within window.
+        Otherwise, returns list of (event_a, event_b) pairs.
         """
+        from coincidence_analysis.detector import DetectorEvent
+        columns = list(DetectorEvent.__annotations__.keys())
+
         min_dt_s = dt_window_ns[0] * 1e-9
         max_dt_s = dt_window_ns[1] * 1e-9
 
-        df_a = self.df[self.df["channel"] == self.ch_a]
-        df_b = self.df[self.df["channel"] == self.ch_b]
+        df_a = self._get_filtered(self.ch_a, energy_range_a)
+        df_b = self._get_filtered(self.ch_b, energy_range_b)
 
-        if energy_range_a:
-            min_ea, max_ea = energy_range_a
-            df_a = df_a[(df_a["energy"] >= min_ea) & (df_a["energy"] <= max_ea)]
+        df_a = df_a.rename(columns={col: f"{col}_a" for col in columns})
+        df_b = df_b.rename(columns={col: f"{col}_b" for col in columns})
 
-        if energy_range_b:
-            min_eb, max_eb = energy_range_b
-            df_b = df_b[(df_b["energy"] >= min_eb) & (df_b["energy"] <= max_eb)]
+        # Merge asof finds nearest event in df_b for each event in df_a
+        merged = pd.merge_asof(
+            df_a, df_b, 
+            left_on="time_s_a", right_on="time_s_b",
+            direction="nearest",
+            tolerance=max(abs(min_dt_s), abs(max_dt_s))
+        )
 
-        df_a = df_a.reset_index(drop=True)
-        df_b = df_b.reset_index(drop=True)
+        # Calculate time difference
+        merged = merged.dropna(subset=["channel_b"])
+        dt = merged["time_s_a"] - merged["time_s_b"]
 
-        coincidences = []
-        i, j = 0, 0
+        # Select only those within the window
+        mask = (dt >= min_dt_s) & (dt <= max_dt_s)
+        merged = merged[mask]
 
-        while i < len(df_a) and j < len(df_b):
-            t_a = df_a.loc[i, "time_s"]
-            t_b = df_b.loc[j, "time_s"]
-            dt = t_a - t_b
+        if return_delta_t:
+            return (dt[mask] * 1e9).values
+        else:
+            # Return list of (row_a, row_b) as before
+            df_a_clean = merged[[f"{col}_a" for col in columns]].copy()
+            df_b_clean = merged[[f"{col}_b" for col in columns]].copy()
+            df_a_clean.columns = columns
+            df_b_clean.columns = columns
 
-            if min_dt_s <= dt <= max_dt_s:
-                coincidences.append((df_a.loc[i], df_b.loc[j]))
-                i += 1
-                j += 1
-            elif dt < min_dt_s:
-                i += 1
-            else:
-                j += 1
-
-        return coincidences
+            return list(zip(
+                df_a_clean.itertuples(index=False),
+                df_b_clean.itertuples(index=False)
+            ))
 
     def coincidence_rate(self, coincidence_window_ns: float, total_time_s: float = None) -> float:
         """
@@ -76,48 +82,3 @@ class CoincidenceAnalyzer:
         
         n_coincidences = len(self.find_coincidences(coincidence_window_ns))
         return n_coincidences / total_time_s if total_time_s > 0 else 0.0
-    
-    def delta_t_distribution(
-        self,
-        max_time_diff_ns: float = 200.0,
-        energy_range_a: Tuple[int, int] = None,
-        energy_range_b: Tuple[int, int] = None
-    ) -> np.ndarray:
-        """
-        Returns an array of delta_t values (in ns) between all events from channel_a and channel_b
-        within the given max_time_diff window. Used for visualizing the Δt histogram.
-        """
-        window_s = max_time_diff_ns * 1e-9
-
-        df_a = self.df[self.df["channel"] == self.ch_a]
-        df_b = self.df[self.df["channel"] == self.ch_b]
-
-        # Apply energy filters if needed
-        if energy_range_a:
-            min_a, max_a = energy_range_a
-            df_a = df_a[(df_a["energy"] >= min_a) & (df_a["energy"] <= max_a)]
-        if energy_range_b:
-            min_b, max_b = energy_range_b
-            df_b = df_b[(df_b["energy"] >= min_b) & (df_b["energy"] <= max_b)]
-
-        df_a = df_a.reset_index(drop=True)
-        df_b = df_b.reset_index(drop=True)
-
-        i, j = 0, 0
-        delta_ts = []
-
-        while i < len(df_a) and j < len(df_b):
-            t_a = df_a.loc[i, "time_s"]
-            t_b = df_b.loc[j, "time_s"]
-            delta = t_a - t_b  # positive = A is later than B
-
-            if abs(delta) <= window_s:
-                delta_ts.append(delta * 1e9)  # convert to ns
-                i += 1
-                j += 1
-            elif delta < -window_s:
-                i += 1
-            else:
-                j += 1
-
-        return np.array(delta_ts)
