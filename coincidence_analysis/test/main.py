@@ -9,16 +9,15 @@ from coincidence_analysis.plotting import (
     plot_energy_spectrum, select_energy_range, select_time_window, plot_count_rates
 )
 from coincidence_analysis.utils import compute_count_rate, get_times_in_energy_range
-from coincidence_analysis.analysis import exponential_decay, fit_decay_curve, integrate_counts
+from coincidence_analysis.analysis import exponential_decay, fit_decay_curve, exponential_decay_no_bg
 
 def load_data(signal_path, background_path):
     signal = DetectorData(signal_path)
     background = DetectorData(background_path)
     return signal.get_dataframe(), background.get_dataframe()
 
-def analyze_coincidences(df_signal, df_bg):
+def analyze_coincidences(df_signal):
     analyzer = CoincidenceAnalyzer(df_signal)
-    analyzer_bg = CoincidenceAnalyzer(df_bg)
 
     # Δt histogram and window selection
     delta_ts = analyzer.coincidence_search(dt_window_ns=(-200, 200), return_delta_t=True)
@@ -37,22 +36,15 @@ def analyze_coincidences(df_signal, df_bg):
         energy_range_b=range1
     )
 
-    bg_coincidences_in_range = analyzer_bg.coincidence_search(
-        dt_window_ns=dt_window,
-        energy_range_a=range0,
-        energy_range_b=range1
-    )
+    return (coincidences_in_range, dt_window, range0, range1)
 
-    return (coincidences_in_range, bg_coincidences_in_range, dt_window, range0, range1, analyzer, analyzer_bg)
-
-def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, bg_coincidences_in_range, range0, range1, bin_width_s=3.0):
+def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, range1, bin_width_s=3.0):
     ch0_times = get_times_in_energy_range(df_signal, channel=0, energy_range=range0)
     ch1_times = get_times_in_energy_range(df_signal, channel=1, energy_range=range1)
     coin_times = [min(pair[0].time_s, pair[1].time_s) for pair in coincidences_in_range]
 
     bg_ch0_times = get_times_in_energy_range(df_bg, channel=0, energy_range=range0)
     bg_ch1_times = get_times_in_energy_range(df_bg, channel=1, energy_range=range1)
-    bg_coin_times = [min(pair[0].time_s, pair[1].time_s) for pair in bg_coincidences_in_range]
 
     signal_ch0 = compute_count_rate(ch0_times, bin_width_s=bin_width_s)
     signal_ch1 = compute_count_rate(ch1_times, bin_width_s=bin_width_s)
@@ -60,10 +52,14 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, bg_coinciden
 
     background_ch0 = compute_count_rate(bg_ch0_times, bin_width_s=bin_width_s)
     background_ch1 = compute_count_rate(bg_ch1_times, bin_width_s=bin_width_s)
-    background_coinc = compute_count_rate(bg_coin_times, bin_width_s=bin_width_s)
 
     # Fit decay curves
-    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=134.7, time_window=(21, 600))
+    fit_window = (21, 600)
+    half_life = 134.7  # in seconds
+
+    popt_ch0, _ = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=fit_window)
+    popt_ch1, _ = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=fit_window)
+    popt_coin, _ = fit_decay_curve(signal_coinc, half_life=134.7, time_window=(21, 300), no_background=True)
 
     plot_count_rates(
         signal_ch0=signal_ch0,
@@ -71,8 +67,9 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, bg_coinciden
         signal_coinc=signal_coinc,
         background_ch0=background_ch0,
         background_ch1=background_ch1,
-        background_coinc=background_coinc,
-        fit_func_ch0=exponential_decay, popt_ch0=popt_ch0
+        fit_func_ch0=exponential_decay, popt_ch0=popt_ch0,
+        fit_func_ch1=exponential_decay, popt_ch1=popt_ch1,
+        fit_func_coinc=exponential_decay_no_bg, popt_coinc=popt_coin
     )
 
 def main():
@@ -80,8 +77,8 @@ def main():
     background_path = r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\background_listmode.txt'
 
     df_signal, df_bg = load_data(signal_path, background_path)
-    (coincidences_in_range, bg_coincidences_in_range, dt_window, range0, range1, analyzer, analyzer_bg) = analyze_coincidences(df_signal, df_bg)
-    compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, bg_coincidences_in_range, range0, range1)
+    (coincidences_in_range, dt_window, range0, range1) = analyze_coincidences(df_signal)
+    compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, range1)
 
     print(f"Found {len(coincidences_in_range)} coincidences in dt window {dt_window}.")
 

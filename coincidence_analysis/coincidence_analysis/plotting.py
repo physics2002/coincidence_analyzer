@@ -110,7 +110,6 @@ def plot_count_rates(
     signal_coinc: dict,
     background_ch0: dict,
     background_ch1: dict,
-    background_coinc: dict,
     fit_func_ch0=None, popt_ch0=None,
     fit_func_ch1=None, popt_ch1=None,
     fit_func_coinc=None, popt_coinc=None
@@ -155,7 +154,6 @@ def plot_count_rates(
 
     plt.figure(figsize=(16, 8))
     plt.errorbar(signal_coinc['centers'], signal_coinc["rates"], yerr=signal_coinc["errors"], label="Coincidences", fmt='o', capsize=2, color='blue')
-    plt.errorbar(background_coinc['centers'], background_coinc["rates"], yerr=background_coinc["errors"], label="Background Coincidences", fmt='o', capsize=2, color='red')
     if fit_func_coinc and popt_coinc is not None:
         t_fit = np.linspace(t_down, t_up, 500)
         y_fit = fit_func_coinc(t_fit, *popt_coinc)
