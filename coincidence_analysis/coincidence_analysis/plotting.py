@@ -112,7 +112,8 @@ def plot_count_rates(
     background_ch1: dict,
     fit_func_ch0=None, popt_ch0=None,
     fit_func_ch1=None, popt_ch1=None,
-    fit_func_coinc=None, popt_coinc=None
+    fit_func_coinc=None, popt_coinc=None,
+    half_life: float = None
 ):
     """
     Plots count rates for channel 0, channel 1, and coincidence events over time.
@@ -137,7 +138,10 @@ def plot_count_rates(
     plt.errorbar(background_ch0['centers'], background_ch0["rates"], yerr=background_ch0["errors"], label="Channel 0 Background", fmt='o', capsize=2, color='red')
     if fit_func_ch0 and popt_ch0 is not None:
         t_fit = np.linspace(t_down, t_up, 500)
-        y_fit = fit_func_ch0(t_fit, *popt_ch0)
+        if half_life:
+            y_fit = fit_func_ch0(t_fit, popt_ch0[0], np.log(2)/half_life, popt_ch0[1])
+        else:
+            y_fit = fit_func_ch0(t_fit, *popt_ch0)
         plt.plot(t_fit, y_fit, 'g-', label='Channel 0 Fit')
     plt.xlim(t_down, t_up)
     format_plots()
@@ -147,7 +151,10 @@ def plot_count_rates(
     plt.errorbar(background_ch1['centers'], background_ch1["rates"], yerr=background_ch1["errors"], label="Channel 1 Background", fmt='o', capsize=2, color='red')
     if fit_func_ch1 and popt_ch1 is not None:
         t_fit = np.linspace(t_down, t_up, 500)
-        y_fit = fit_func_ch1(t_fit, *popt_ch1)
+        if half_life:
+            y_fit = fit_func_ch1(t_fit, popt_ch1[0], np.log(2)/half_life, popt_ch1[1])
+        else:
+            y_fit = fit_func_ch1(t_fit, *popt_ch1)
         plt.plot(t_fit, y_fit, 'g-', label='Channel 1 Fit')
     plt.xlim(t_down, t_up)
     format_plots()
@@ -156,7 +163,10 @@ def plot_count_rates(
     plt.errorbar(signal_coinc['centers'], signal_coinc["rates"], yerr=signal_coinc["errors"], label="Coincidences", fmt='o', capsize=2, color='blue')
     if fit_func_coinc and popt_coinc is not None:
         t_fit = np.linspace(t_down, t_up, 500)
-        y_fit = fit_func_coinc(t_fit, *popt_coinc)
+        if half_life:
+            y_fit = fit_func_coinc(t_fit, popt_coinc[0], np.log(2)/half_life)
+        else:
+            y_fit = fit_func_coinc(t_fit, *popt_coinc)
         plt.plot(t_fit, y_fit, 'g-', label='Coincidence Fit')
     plt.xlim(t_down, t_up)
     format_plots()

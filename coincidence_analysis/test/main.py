@@ -6,10 +6,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from coincidence_analysis.detector import DetectorData
 from coincidence_analysis.coincidence import CoincidenceAnalyzer
 from coincidence_analysis.plotting import (
-    plot_energy_spectrum, select_energy_range, select_time_window, plot_count_rates
+    select_energy_range, select_time_window, plot_count_rates
 )
 from coincidence_analysis.utils import compute_count_rate, get_times_in_energy_range
-from coincidence_analysis.analysis import exponential_decay, fit_decay_curve, exponential_decay_no_bg
+from coincidence_analysis.analysis import exponential_decay, exponential_decay_no_bg, fit_decay_curve, compute_integral_and_error
 
 def load_data(signal_path, background_path):
     signal = DetectorData(signal_path)
@@ -57,9 +57,9 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, rang
     fit_window = (21, 600)
     half_life = 134.7  # in seconds
 
-    popt_ch0, _ = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=fit_window)
-    popt_ch1, _ = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=fit_window)
-    popt_coin, _ = fit_decay_curve(signal_coinc, half_life=134.7, time_window=(21, 300), no_background=True)
+    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=fit_window)
+    popt_ch1, pcov_ch1 = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=fit_window)
+    popt_coin, pcov_coin = fit_decay_curve(signal_coinc, half_life=134.7, time_window=(21, 300), no_background=True)
 
     plot_count_rates(
         signal_ch0=signal_ch0,
@@ -69,8 +69,19 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, rang
         background_ch1=background_ch1,
         fit_func_ch0=exponential_decay, popt_ch0=popt_ch0,
         fit_func_ch1=exponential_decay, popt_ch1=popt_ch1,
-        fit_func_coinc=exponential_decay_no_bg, popt_coinc=popt_coin
+        fit_func_coinc=exponential_decay_no_bg, popt_coinc=popt_coin,
+        half_life=half_life
     )
+
+    #Compute integrals
+    integral_time_window = (0, 600)
+    N_beta, N_beta_err = compute_integral_and_error(popt_ch0, pcov_ch0, integral_time_window, fixed_half_life=half_life)
+    N_gamma, N_gamma_err = compute_integral_and_error(popt_ch1, pcov_ch1, integral_time_window, fixed_half_life=half_life)
+    N_coinc, N_coinc_err = compute_integral_and_error(popt_coin, pcov_coin, integral_time_window, fixed_half_life=half_life, include_bg=False)
+
+    print(f"Beta decay integral: {N_beta:.2f} ± {N_beta_err:.2f}")
+    print(f"Gamma decay integral: {N_gamma:.2f} ± {N_gamma_err:.2f}")
+    print(f"Coincidence integral: {N_coinc:.2f} ± {N_coinc_err:.2f}")
 
 def main():
     signal_path = r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\AlSurf280um_listmode.txt'
