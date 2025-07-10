@@ -1,8 +1,36 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
+import matplotlib as mpl
 import pandas as pd
 import numpy as np
 from typing import Tuple, List
+
+mpl.rcParams.update({
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Open Sans"],
+    "font.size": 18,
+    "axes.labelsize": 20,
+    "axes.titlesize": 22,
+    "axes.linewidth": 2,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "xtick.major.width": 2,
+    "ytick.major.width": 2,
+    "xtick.direction": "in",
+    "ytick.direction": "in",
+    "legend.fontsize": 16,
+    "legend.frameon": True,
+    "legend.framealpha": 0.9,
+    "legend.edgecolor": "black",
+    "grid.linewidth": 1.5,
+    "grid.alpha": 1,
+    "lines.linewidth": 2.5,
+    "figure.titlesize": 24,
+    "figure.dpi": 120,
+    "axes.grid": True,
+    "axes.spines.top": True,
+    "axes.spines.right": True,
+})
 
 def plot_energy_spectrum(df: pd.DataFrame, channel: int = 0, bins: int = 200, energy_range: Tuple[int, int] = None):
     """
@@ -10,7 +38,7 @@ def plot_energy_spectrum(df: pd.DataFrame, channel: int = 0, bins: int = 200, en
     """
     energy = df[df["channel"] == channel]["energy"]
     plt.figure(figsize=(16, 8))
-    plt.hist(energy, bins=bins, range=energy_range, alpha=0.7, label=f"Channel {channel}")
+    plt.hist(energy, bins=bins, range=energy_range, alpha=0.7, label=f"Channel {channel}", histtype="step", linewidth=2.5)
     plt.xlabel("Energy")
     plt.ylabel("Counts")
     plt.yscale("log")
@@ -40,7 +68,7 @@ def select_energy_range(
     
     fig, ax = plt.subplots(figsize=(16, 8))
     energy = df[df["channel"] == channel]["energy"]
-    ax.hist(energy, bins=bins, range=energy_range, alpha=0.7, label=f"Channel {channel}")
+    ax.hist(energy, bins=bins, range=energy_range, alpha=0.7, label=f"Channel {channel}", histtype="step", linewidth=2.5)
 
     if coincidences is not None:
         coincidence_energies = np.array([pair[channel].energy for pair in coincidences])
@@ -50,7 +78,8 @@ def select_energy_range(
             range=energy_range,
             alpha=0.5,
             color="red",
-            label="Coincidence spectrum"
+            label="Coincidence spectrum",
+            histtype="step", linewidth=2.5
         )
 
     ax.set_title(f"Select energy range for channel {channel}")
@@ -85,7 +114,7 @@ def select_time_window(delta_ts: np.ndarray, bins: int = 200, preselected_range:
     selected = {"min": None, "max": None}
     
     fig, ax = plt.subplots(figsize=(16, 8))
-    ax.hist(delta_ts, bins=bins, alpha=0.7, color="purple")
+    ax.hist(delta_ts, bins=bins, alpha=0.7, color="purple", histtype="step", linewidth=2.5)
     ax.set_title("Select coincidence time window (Δt in ns)")
     ax.set_xlabel("Δt (ns)")
     ax.set_ylabel("Counts")
