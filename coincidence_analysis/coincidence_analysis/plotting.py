@@ -113,7 +113,8 @@ def plot_count_rates(
     fit_func_ch0=None, popt_ch0=None,
     fit_func_ch1=None, popt_ch1=None,
     fit_func_coinc=None, popt_coinc=None,
-    half_life: float = None
+    half_life: float = None,
+    time_window: Tuple[float, float] = None
 ):
     """
     Plots count rates for channel 0, channel 1, and coincidence events over time.
@@ -129,8 +130,12 @@ def plot_count_rates(
         plt.tight_layout()
         plt.grid(True)
 
-    t_down = signal_ch0['centers'][0] - bin_width_s / 2
-    t_up = signal_ch0['centers'][-1] + bin_width_s / 2
+    if time_window:
+        t_down = time_window[0]
+        t_up = time_window[1]
+    else:
+        t_down = signal_ch0['centers'][0] - bin_width_s / 2
+        t_up = signal_ch0['centers'][-1] + bin_width_s / 2
 
     # Plot
     plt.figure(figsize=(16, 8))
