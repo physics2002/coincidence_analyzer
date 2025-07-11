@@ -126,51 +126,38 @@ def compute_integral_and_error(popt, pcov, integral_time_window, fixed_half_life
     I_err = np.sqrt(var_I) if var_I >= 0 else np.nan
     return I, I_err
 
-def compute_beta_efficiency(
-    N_gamma, sigma_gamma,
-    N_coinc, sigma_coinc,
+
+def build_covariance_matrix(stds, correlation_matrix=None):
+    cov = np.diag(stds ** 2)
+    if correlation_matrix is not None:
+        cov = np.outer(stds, stds) * correlation_matrix
+    return cov
+
+def filter_positive_samples(samples):
+    return samples[(samples > 0).all(axis=1)]
+
+def compute_efficiency(
+    N_num, sigma_num,
+    N_den, sigma_den,
     n_samples=1000000,
     correlation_matrix=None
 ):
-    means = np.array([N_gamma, N_coinc])
-    stds = np.array([sigma_gamma, sigma_coinc])
-    cov = np.diag(stds ** 2)
-
-    if correlation_matrix is not None:
-        cov = np.outer(stds, stds) * correlation_matrix
-    
+    means = np.array([N_num, N_den])
+    stds = np.array([sigma_num, sigma_den])
+    cov = build_covariance_matrix(stds, correlation_matrix)
     samples = np.random.multivariate_normal(means, cov, size=n_samples)
-    samples = samples[(samples[:, 0] > 0) & (samples[:, 1] > 0)]
+    samples = filter_positive_samples(samples)
+    eff_samples = (samples[:, 1]) / samples[:, 0]
+    eff = 100 * np.mean(eff_samples)
+    eff_err = 100 * np.std(eff_samples)
+    return eff, eff_err
 
-    e_b_samples = (samples[:, 1]) / samples[:, 0]
+# For backward compatibility:
+def compute_beta_efficiency(N_gamma, sigma_gamma, N_coinc, sigma_coinc, n_samples=1000000, correlation_matrix=None):
+    return compute_efficiency(N_gamma, sigma_gamma, N_coinc, sigma_coinc, n_samples, correlation_matrix)
 
-    e_b = 100*np.mean(e_b_samples)
-    e_b_err = 100*np.std(e_b_samples)
-
-    return e_b, e_b_err
-
-def compute_gamma_efficiency(
-    N_beta, sigma_beta,
-    N_coinc, sigma_coinc,
-    n_samples=1000000,
-    correlation_matrix=None
-):
-    means = np.array([N_beta, N_coinc])
-    stds = np.array([sigma_beta, sigma_coinc])
-    cov = np.diag(stds ** 2)
-
-    if correlation_matrix is not None:
-        cov = np.outer(stds, stds) * correlation_matrix
-    
-    samples = np.random.multivariate_normal(means, cov, size=n_samples)
-    samples = samples[(samples[:, 0] > 0) & (samples[:, 1] > 0)]
-
-    e_g_samples = (samples[:, 1]) / samples[:, 0]
-
-    e_g = 100*np.mean(e_g_samples)
-    e_g_err = 100*np.std(e_g_samples)
-
-    return e_g, e_g_err
+def compute_gamma_efficiency(N_beta, sigma_beta, N_coinc, sigma_coinc, n_samples=1000000, correlation_matrix=None):
+    return compute_efficiency(N_beta, sigma_beta, N_coinc, sigma_coinc, n_samples, correlation_matrix)
 
 def compute_number_of_decays(
     N_beta, sigma_beta,
