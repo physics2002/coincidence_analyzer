@@ -48,3 +48,12 @@ class DetectorData:
 
     def get_dataframe(self) -> pd.DataFrame:
         return self.df.copy()
+    
+    def get_dataframe_time_shifted(self, time_shift: float) -> pd.DataFrame:
+        # Extract the last `time_shift` seconds from the dataframe
+        if self.df.empty:
+            return self.df.copy()
+        max_time = self.df['time_s'].max()
+        min_time = max_time - time_shift
+        df_shifted = self.df[self.df['time_s'] >= min_time].copy()
+        return df_shifted

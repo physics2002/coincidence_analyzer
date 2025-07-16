@@ -49,7 +49,8 @@ def plot_energy_spectrum(df: pd.DataFrame, channel: int = 0, bins: int = 200, en
     plt.show()
 
 def select_energy_range(
-    df: pd.DataFrame,
+    df_signal: pd.DataFrame,
+    df_background: pd.DataFrame = None,
     channel: int = 0,
     bins: int = 200, 
     energy_range: Tuple[int, int] = None, 
@@ -67,8 +68,11 @@ def select_energy_range(
     selected_range = {"min": None, "max": None}
     
     fig, ax = plt.subplots(figsize=(16, 8))
-    energy = df[df["channel"] == channel]["energy"]
+    energy = df_signal[df_signal["channel"] == channel]["energy"]
     ax.hist(energy, bins=bins, range=energy_range, alpha=0.7, label=f"Channel {channel}", histtype="step", linewidth=2.5)
+    if df_background is not None:
+        bg_energy = df_background[df_background["channel"] == channel]["energy"]
+        ax.hist(bg_energy, bins=bins, range=energy_range, alpha=0.5, label=f"Background Channel {channel}", histtype="step", linewidth=2.5, color='orange')
 
     if coincidences is not None:
         coincidence_energies = np.array([pair[channel].energy for pair in coincidences])
@@ -102,7 +106,7 @@ def select_energy_range(
 
     return selected_range["min"], selected_range["max"]
 
-def select_time_window(delta_ts: np.ndarray, bins: int = 200, preselected_range: Tuple[float, float] = None) -> Tuple[float, float]:
+def select_time_window(delta_ts: np.ndarray, time_range: Tuple[float, float] = None, bins: int = 200, preselected_range: Tuple[float, float] = None) -> Tuple[float, float]:
     """
     Plot Δt histogram and let the user select a time window (in ns).
     Returns:
@@ -114,7 +118,7 @@ def select_time_window(delta_ts: np.ndarray, bins: int = 200, preselected_range:
     selected = {"min": None, "max": None}
     
     fig, ax = plt.subplots(figsize=(16, 8))
-    ax.hist(delta_ts, bins=bins, alpha=0.7, color="purple", histtype="step", linewidth=2.5)
+    ax.hist(delta_ts, bins=bins, range=time_range, alpha=0.7, color="purple", histtype="step", linewidth=2.5)
     ax.set_title("Select coincidence time window (Δt in ns)")
     ax.set_xlabel("Δt (ns)")
     ax.set_ylabel("Counts")

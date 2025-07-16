@@ -19,18 +19,20 @@ def load_data(signal_path, background_path):
     background = DetectorData(background_path)
     return signal.get_dataframe(), background.get_dataframe()
 
-def analyze_coincidences(df_signal):
+def analyze_coincidences(df_signal, df_background):
     analyzer = CoincidenceAnalyzer(df_signal)
 
     # Δt histogram and window selection
     delta_ts = analyzer.coincidence_search(dt_window_ns=(-200, 200), return_delta_t=True)
-    dt_window = select_time_window(delta_ts)
+    dt_window = select_time_window(delta_ts, time_range=(-200, 200))#preselected_range=(-8.27, 177.04)
 
     coincidences_all = analyzer.coincidence_search(dt_window_ns=dt_window)
 
     # Energy selection
-    range0 = select_energy_range(df_signal, channel=0, bins=1000, energy_range=(0, 50000))
-    range1 = select_energy_range(df_signal, channel=1, bins=2000, energy_range=(0, 50000), coincidences=coincidences_all)
+    range0 = select_energy_range(df_signal, channel=0, bins=2000, energy_range=(0, 50000), coincidences=coincidences_all, 
+                                 df_background=df_background, preselected_range=(9097, 11182))
+    range1 = select_energy_range(df_signal, channel=1, bins=1000, energy_range=(0, 50000), 
+                                 df_background=df_background, preselected_range=(0, 50000))
 
     # Coincidence analysis
     coincidences_in_range = analyzer.coincidence_search(
@@ -111,7 +113,7 @@ def main():
     background_path = r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\background_listmode.txt'
 
     df_signal, df_bg = load_data(signal_path, background_path)
-    (coincidences_in_range, range0, range1) = analyze_coincidences(df_signal)
+    (coincidences_in_range, range0, range1) = analyze_coincidences(df_signal, df_bg)
     compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, range1)
 
 if __name__ == "__main__":
