@@ -137,6 +137,34 @@ def select_time_window(delta_ts: np.ndarray, time_range: Tuple[float, float] = N
 
     return selected["min"], selected["max"]
 
+def select_decay_time_window(t, y, yerr):
+    """
+    Interactive selection of time window for decay fit.
+    Returns (t_min, t_max) selected by user.
+    """
+    selected = {"min": None, "max": None}
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.errorbar(t, y, yerr=yerr, fmt='o', capsize=2, color='blue')
+    ax.set_title("Select time window for decay fit")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Count Rate [1/s]")
+    ax.grid(True)
+    ax.set_yscale("log")
+
+    def onselect(xmin, xmax):
+        selected["min"] = xmin
+        selected["max"] = xmax
+        print(f"Selected time window: {xmin:.2f} – {xmax:.2f} s")
+
+    span = SpanSelector(ax, onselect, "horizontal", useblit=True,
+                        rectprops=dict(alpha=0.5, facecolor='green'))
+    plt.tight_layout()
+    plt.show()
+    if selected["min"] is not None and selected["max"] is not None:
+        return selected["min"], selected["max"]
+    else:
+        raise ValueError("No time window selected.")
+
 def plot_count_rates(
     signal_ch0: dict,
     signal_ch1: dict,

@@ -60,11 +60,12 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, rang
 
     # Fit decay curves
     fit_window = (21, 600)
+    interactive_time_window = True  # Set to True for interactively time window selection
     half_life = 134.7  # in seconds
 
-    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=fit_window)
-    popt_ch1, pcov_ch1 = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=fit_window)
-    popt_coin, pcov_coin = fit_decay_curve(signal_coinc, half_life=134.7, time_window=(21, 300), no_background=True)
+    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=None, interactive_time_window=interactive_time_window)
+    popt_ch1, pcov_ch1 = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=None, interactive_time_window=interactive_time_window)
+    popt_coin, pcov_coin = fit_decay_curve(signal_coinc, half_life=half_life, time_window=None, no_background=True, interactive_time_window=interactive_time_window)
 
     #Compute integrals
     integral_time_window = (0, 600)
