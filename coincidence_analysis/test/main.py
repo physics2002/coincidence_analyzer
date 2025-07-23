@@ -14,6 +14,11 @@ from coincidence_analysis.analysis import (
     compute_integral_and_error, compute_accumulated_activity, compute_beta_efficiency, compute_gamma_efficiency
 )
 
+def save_background(backgroud_path):
+    background = DetectorData(backgroud_path)
+    background_data = background.get_dataframe_time_shifted(600)
+    background_data.to_csv("background.txt", sep=";", index=False)
+
 def load_data(signal_path, background_path):
     signal = DetectorData(signal_path)
     background = DetectorData(background_path)
