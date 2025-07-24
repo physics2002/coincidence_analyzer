@@ -142,6 +142,10 @@ def select_fit_time_window(count_rate_dict: dict) -> Tuple[float, float]:
     Interactive selection of time window for decay fit.
     Returns (t_min, t_max) selected by user.
     """
+    t = count_rate_dict['centers']
+    y = count_rate_dict['rates']
+    yerr = count_rate_dict['errors']
+    
     selected = {"min": None, "max": None}
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.errorbar(t, y, yerr=yerr, fmt='o', capsize=2, color='blue')
