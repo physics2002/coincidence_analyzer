@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from coincidence_analysis.detector import DetectorData
 from coincidence_analysis.coincidence import CoincidenceAnalyzer
 from coincidence_analysis.plotting import (
-    select_energy_range, select_time_window, plot_count_rates
+    select_energy_range, select_time_window, plot_count_rates, select_fit_time_window
 )
 from coincidence_analysis.utils import compute_count_rate, get_times_in_energy_range
 from coincidence_analysis.analysis import (
@@ -64,13 +64,15 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, rang
     background_ch1 = compute_count_rate(bg_ch1_times, bin_width_s=bin_width_s)
 
     # Fit decay curves
-    fit_window = (21, 600)
-    interactive_time_window = True  # Set to True for interactively time window selection
+    time_window_0 = select_fit_time_window(signal_ch0)
+    time_window_1 = select_fit_time_window(signal_ch1)
+    time_window_coin = select_fit_time_window(signal_coinc)
+
     half_life = 134.7  # in seconds
 
-    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=None, interactive_time_window=interactive_time_window)
-    popt_ch1, pcov_ch1 = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=None, interactive_time_window=interactive_time_window)
-    popt_coin, pcov_coin = fit_decay_curve(signal_coinc, half_life=half_life, time_window=None, no_background=True, interactive_time_window=interactive_time_window)
+    popt_ch0, pcov_ch0 = fit_decay_curve(signal_ch0, background_ch0, half_life=half_life, time_window=time_window_0)
+    popt_ch1, pcov_ch1 = fit_decay_curve(signal_ch1, background_ch1, half_life=half_life, time_window=time_window_1)
+    popt_coin, pcov_coin = fit_decay_curve(signal_coinc, half_life=half_life, time_window=time_window_coin, no_background=True)
 
     #Compute integrals
     integral_time_window = (0, 600)

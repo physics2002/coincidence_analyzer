@@ -137,7 +137,7 @@ def select_time_window(delta_ts: np.ndarray, time_range: Tuple[float, float] = N
 
     return selected["min"], selected["max"]
 
-def select_decay_time_window(t, y, yerr):
+def select_fit_time_window(count_rate_dict: dict) -> Tuple[float, float]:
     """
     Interactive selection of time window for decay fit.
     Returns (t_min, t_max) selected by user.

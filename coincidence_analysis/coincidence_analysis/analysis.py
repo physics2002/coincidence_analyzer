@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from coincidence_analysis.plotting import select_decay_time_window
 
 def exponential_decay(t, A, lambd, B):
     return A * np.exp(-lambd * t) + B
@@ -8,7 +7,7 @@ def exponential_decay(t, A, lambd, B):
 def exponential_decay_no_bg(t, A, lambd):
     return A * np.exp(-lambd * t)
 
-def fit_decay_curve(signal_dict, bg_dict=None, half_life=None, time_window=None, no_background=False, interactive_time_window=False):
+def fit_decay_curve(signal_dict, bg_dict=None, half_life=None, time_window=None, no_background=False):
     """
     Fit count rate vs time data to exponential decay model.
     Set no_background=True to fit without a background term.
@@ -17,11 +16,6 @@ def fit_decay_curve(signal_dict, bg_dict=None, half_life=None, time_window=None,
     t = signal_dict['centers']
     y = signal_dict['rates']
     yerr = signal_dict['errors']
-
-    # Interactive time window selection
-    if interactive_time_window:
-        selected = select_decay_time_window(t, y, yerr)
-        time_window = (selected[0], selected[1])
 
     # Apply time window filter
     if time_window:
