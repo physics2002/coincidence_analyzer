@@ -171,11 +171,7 @@ def compute_number_of_decays(
 ):
     means = np.array([N_beta, N_gamma, N_coinc])
     stds = np.array([sigma_beta, sigma_gamma, sigma_coinc])
-    cov = np.diag(stds ** 2)
-
-    if correlation_matrix is not None:
-        # Convert correlation matrix to covariance matrix
-        cov = np.outer(stds, stds) * correlation_matrix
+    cov = build_covariance_matrix(stds, correlation_matrix)
 
     # Sample from multivariate normal
     samples = np.random.multivariate_normal(means, cov, size=n_samples)
