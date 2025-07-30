@@ -188,8 +188,8 @@ def plot_count_rates(
     bin_width_s = signal_ch0['bin_width']
 
     def format_plots():
-        plt.xlabel("Time [s]")
-        plt.ylabel(f"Count Rate [1/s] (bin width = {bin_width_s:.2f}s)")
+        plt.xlabel("Time (s)")
+        plt.ylabel(f"Count Rate (1/s) (bin width = {bin_width_s:.2f}s)")
         plt.title("Count Rate vs Time")
         plt.legend()
         plt.yscale("log")
