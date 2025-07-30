@@ -243,3 +243,33 @@ def plot_count_rates(
     format_plots()
 
     plt.show()
+
+def plot_histograms_for_correlation(binned_counts, bins, exclude_bins=None):
+    """
+    Plot histograms of the number of beta, gammas and coincidences over user defined time bins.
+    """
+    labels = ['Betas', 'Gammas', 'Coincidences']
+    colors = ['#1f77b4', '#2ca02c', '#d62728']
+    exclude_bins = set(exclude_bins) if exclude_bins else set()
+
+    bin_lefts = bins[:-1]
+    bin_widths = bins[1:] - bins[:-1]
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    for i, label in enumerate(labels):
+        counts = binned_counts[label]
+        ax.bar(bin_lefts, counts, width=bin_widths, align='edge',
+               label=label, alpha=0.6, color=colors[i], edgecolor='black')
+
+    # Mark excluded bins
+    for idx in exclude_bins:
+        ax.axvspan(bins[idx], bins[idx + 1], color='gray', alpha=0.3)
+
+    ax.set_yscale('log')
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Counts")
+    ax.set_title("Binned Counts Over Time")
+    ax.legend()
+    ax.grid(True, which='both', axis='y', alpha=0.3)
+    plt.show()
