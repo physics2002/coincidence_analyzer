@@ -121,6 +121,7 @@ def select_time_window(delta_ts: np.ndarray, time_range: Tuple[float, float] = N
     ax.hist(delta_ts, bins=bins, range=time_range, alpha=0.7, color="purple", histtype="step", linewidth=2.5)
     ax.set_title("Select coincidence time window (Δt in ns)")
     ax.set_xlabel("Δt (ns)")
+    ax.set_yscale("log")
     ax.set_ylabel("Counts")
     ax.grid(True)
 
@@ -145,13 +146,13 @@ def select_fit_time_window(count_rate_dict: dict) -> Tuple[float, float]:
     t = count_rate_dict['centers']
     y = count_rate_dict['rates']
     yerr = count_rate_dict['errors']
-    
+
     selected = {"min": None, "max": None}
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.errorbar(t, y, yerr=yerr, fmt='o', capsize=2, color='blue')
     ax.set_title("Select time window for decay fit")
-    ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Count Rate [1/s]")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Count Rate (1/s)")
     ax.grid(True)
     ax.set_yscale("log")
 
