@@ -273,3 +273,41 @@ def plot_histograms_for_correlation(binned_counts, bins, exclude_bins=None):
     ax.legend()
     ax.grid(True, which='both', axis='y', alpha=0.3)
     plt.show()
+
+def plot_scatter_matrix(binned_counts, exclude_bins=None):
+    """
+    Creates a 3x3 matrix of scatter plots between Betas, Gammas, and Coincidences with
+    """
+    labels = ['Betas', 'Gammas', 'Coincidences']
+    colors = ['#1f77b4', '#2ca02c', '#d62728']
+    exclude_bins = set(exclude_bins) if exclude_bins else set()
+
+    # Apply masking to exclude bins
+    data = {k: np.array(v) for k, v in binned_counts.items()}
+    N = len(data['Betas'])
+    mask = np.ones(N, dtype=bool)
+    if exclude_bins:
+        mask[list(exclude_bins)] = False
+    for key in data:
+        data[key] = data[key][mask]
+
+    fig, axs = plt.subplots(3, 3, figsize=(9, 9), sharex='col', sharey='row')
+
+    for i in range(3):
+        for j in range(3):
+            ax = axs[i, j]
+            x_label = labels[j]
+            y_label = labels[i]
+
+            ax.scatter(data[x_label], data[y_label], color='black', alpha=0.7, s=20)
+            ax.grid(True, alpha=0.3)
+
+            if i == 2:
+                ax.set_xlabel(x_label)
+            if j == 0:
+                ax.set_ylabel(y_label)
+
+    fig.suptitle("Pairwise Scatter Matrix of Binned Counts", fontsize=14)
+    plt.subplots_adjust(left=0.1, right=0.97, top=0.93, bottom=0.1,
+                        hspace=0.0, wspace=0.0)
+    plt.show()
