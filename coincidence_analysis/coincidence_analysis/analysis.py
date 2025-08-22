@@ -28,7 +28,7 @@ def fit_decay_curve(signal_dict, bg_dict=None, half_life=None, time_window=None,
     if no_background:
         # Fit without background
         A0 = y[0]
-        lambd0 = np.log(2) / half_life if half_life else 0.001
+        lambd0 = np.log(2) / half_life if half_life else np.log(2) / 220
         if half_life:
             popt, pcov = curve_fit(
                 lambda t, A: exponential_decay_no_bg(t, A, lambd0),
@@ -50,7 +50,7 @@ def fit_decay_curve(signal_dict, bg_dict=None, half_life=None, time_window=None,
         bg_lower = max(bg_lower, 0)
 
         A0 = y[0] - B0
-        lambd0 = np.log(2) / half_life if half_life else 0.001
+        lambd0 = np.log(2) / half_life if half_life else np.log(2) / 220
 
         if half_life:
             popt, pcov = curve_fit(
@@ -103,6 +103,8 @@ def compute_integral_and_error(popt, pcov, integral_time_window, fixed_half_life
                 2 * dI_dA * dI_dB * pcov[0, 2] +
                 2 * dI_dl * dI_dB * pcov[1, 2]
             )
+            # lambd and its error
+            print(f"Lambda: {lambd:.4f} ± {np.sqrt(pcov[1, 1]):.4f}")
     else:
         if fixed_lambda is not None:
             A = popt[0]
@@ -111,7 +113,7 @@ def compute_integral_and_error(popt, pcov, integral_time_window, fixed_half_life
             dI_dA = (1 / lambd) * (np.exp(-lambd * t1) - np.exp(-lambd * t2))
             var_I = dI_dA**2 * pcov[0, 0]
         else:
-            A, lambd = popt
+            A, lambd, B = popt
             I = (A / lambd) * (np.exp(-lambd * t1) - np.exp(-lambd * t2))
 
             dI_dA = (1 / lambd) * (np.exp(-lambd * t1) - np.exp(-lambd * t2))
@@ -123,6 +125,8 @@ def compute_integral_and_error(popt, pcov, integral_time_window, fixed_half_life
                 dI_dl**2 * pcov[1, 1] +
                 2 * dI_dA * dI_dl * pcov[0, 1]
             )
+
+            print(f"Lambda: {lambd:.4f} ± {np.sqrt(pcov[1, 1]):.4f}")
 
     I_err = np.sqrt(var_I) if var_I >= 0 else np.nan
     return I, I_err
@@ -176,10 +180,9 @@ def compute_number_of_decays(
     # Sample from multivariate normal
     samples = np.random.multivariate_normal(means, cov, size=n_samples)
 
-    # Avoid division by zero or negative counts
-    samples = samples[(samples[:, 0] > 0) & (samples[:, 1] > 0) & (samples[:, 2] > 0)]
+    samples = filter_positive_samples(samples)
 
-    # Compute activity for each sample
+    # Compute number of decays for each sample
     N_decay = (samples[:, 0] * samples[:, 1]) / samples[:, 2]
 
     # Get statistics
