@@ -10,32 +10,35 @@ class DetectorEvent:
     psd: int
 
 class DetectorData:
-    def __init__(self, file_path: str):
-        self.file_path = file_path
-        self.df = self._load_listmode_file(file_path)
+    def __init__(self, file_paths: List[str]):
+        self.file_paths = file_paths if isinstance(file_paths, list) else [file_paths]
+        self.df = self._load_listmode_files(self.file_paths)
 
-    def _load_listmode_file(self, filepath: str) -> Tuple[pd.DataFrame, dict]:
-        with open(filepath, 'r') as f:
-            lines = f.readlines()
-
-        header_lines = [line.strip() for line in lines if line.startswith("#")]
-        data_lines = [line.strip() for line in lines if not line.startswith("#")]
-
-        print(header_lines)
-
-        # Create DataFrame from listmode data
-        df = pd.DataFrame(
-            [line.split(';') for line in data_lines],
-            columns=["channel", "time_s", "energy", "psd"]
-        )
-        df = df.astype({
-            "channel": int,
-            "time_s": float,
-            "energy": int,
-            "psd": int
-        })
-
-        return df
+    def _load_listmode_files(self, filepaths: List[str]) -> pd.DataFrame:
+        dfs = []
+        for filepath in filepaths:
+            with open(filepath, 'r') as f:
+                lines = f.readlines()
+            header_lines = [line.strip() for line in lines if line.startswith("#")]
+            data_lines = [line.strip() for line in lines if not line.startswith("#")]
+            # Create DataFrame from listmode data
+            df = pd.DataFrame(
+                [line.split(';') for line in data_lines],
+                columns=["channel", "time_s", "energy", "psd"]
+            )
+            df = df.astype({
+                "channel": int,
+                "time_s": float,
+                "energy": int,
+                "psd": int
+            })
+            df["source_file"] = filepath  # Optionally track source file
+            dfs.append(df)
+        if dfs:
+            merged_df = pd.concat(dfs, ignore_index=True)
+        else:
+            merged_df = pd.DataFrame(columns=["channel", "time_s", "energy", "psd", "source_file"])
+        return merged_df
 
     def get_events(self) -> List[DetectorEvent]:
         return [
