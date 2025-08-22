@@ -131,8 +131,75 @@ def compute_integral_and_error(popt, pcov, integral_time_window, fixed_half_life
     I_err = np.sqrt(var_I) if var_I >= 0 else np.nan
     return I, I_err
 
-def compute_correlation_matrix():
-    pass
+def generate_exponential_bins(half_life, t_min, t_max, N):
+    """
+    Generate exponentially spaced bins over [t_min, t_max] using the decay law.
+    Each bin corresponds to equal area under the decay curve.
+    """
+    lmbd = np.log(2) / half_life
+    T = t_max - t_min
+
+    norm = 1 - np.exp(-lmbd * T)
+    frac = np.linspace(0, 1, N + 1)
+    return -np.log(1 - frac * norm) / lmbd + t_min
+
+def correlate_binned_counts(B, G, C, B_back, G_back,
+                             half_life, t_min, t_max, N,
+                             exclude_bins=None):
+    """
+    Bins B, G, C (and their backgrounds) using exponential bins,
+    subtracts background, excludes selected bins, and computes correlation matrix.
+
+    Parameters:
+        B, G, C: arrays of event timestamps [s]
+        B_back, G_back: arrays of background timestamps [s]
+        half_life: isotope half-life [s]
+        t_min, t_max: range for binning [s]
+        N: number of bins
+        exclude_bins: list of bin indices to exclude (e.g., [0, 1])
+
+    Returns:
+        corr_matrix: 3x3 correlation matrix between [B_net, G_net, C_net] (after exclusions)
+        binned_counts: dictionary with keys 'B', 'G', 'C' (each is full-length 1D array of size N)
+    """
+    # Generate bin edges
+    bins = generate_exponential_bins(half_life, t_min, t_max, N)
+
+    # Histogram signal and background
+    hist_B = np.histogram(B, bins=bins)[0]
+    hist_G = np.histogram(G, bins=bins)[0]
+    hist_C = np.histogram(C, bins=bins)[0]
+
+    hist_B_back = np.histogram(B_back, bins=bins)[0]
+    hist_G_back = np.histogram(G_back, bins=bins)[0]
+
+    # Background subtraction
+    B_net = hist_B - hist_B_back
+    G_net = hist_G - hist_G_back
+    C_net = hist_C  # No background for coincidences
+
+    # Exclude infected bins
+    if exclude_bins:
+        include_mask = np.ones(N, dtype=bool)
+        include_mask[exclude_bins] = False
+
+        B_corr = B_net[include_mask]
+        G_corr = G_net[include_mask]
+        C_corr = C_net[include_mask]
+    else:
+        B_corr, G_corr, C_corr = B_net, G_net, C_net
+
+    # Compute correlation matrix
+    data = np.vstack([B_corr, G_corr, C_corr])
+    corr_matrix = np.corrcoef(data)
+
+    binned_counts = {
+        "Betas": B_net,
+        "Gammas": G_net,
+        "Coincidences": C_net,
+    }
+
+    return corr_matrix, binned_counts
 
 def build_covariance_matrix(stds, correlation_matrix=None):
     cov = np.diag(stds ** 2)
