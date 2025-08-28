@@ -6,11 +6,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from coincidence_analysis.detector import DetectorData
 from coincidence_analysis.coincidence import CoincidenceAnalyzer
 from coincidence_analysis.plotting import (
-    select_energy_range, select_time_window, plot_count_rates, select_fit_time_window
+    select_energy_range, select_time_window, plot_count_rates, select_fit_time_window,
+    plot_scatter_matrix, plot_histograms_for_correlation
 )
 from coincidence_analysis.utils import compute_count_rate, get_times_in_energy_range
 from coincidence_analysis.analysis import (
-    exponential_decay, exponential_decay_no_bg, fit_decay_curve, 
+    exponential_decay, exponential_decay_no_bg, fit_decay_curve, correlate_binned_counts, generate_exponential_bins,
     compute_integral_and_error, compute_accumulated_activity, compute_beta_efficiency, compute_gamma_efficiency
 )
 
@@ -47,6 +48,30 @@ def analyze_coincidences(df_signal, df_background):
     )
 
     return (coincidences_in_range, range0, range1)
+
+def compute_and_plot_corr_matrix(df_signal, df_bg, coincidences_in_range, range0, range1):
+    ch0_times = get_times_in_energy_range(df_signal, channel=0, energy_range=range0)
+    ch1_times = get_times_in_energy_range(df_signal, channel=1, energy_range=range1)
+    coin_times = [min(pair[0].time_s, pair[1].time_s) for pair in coincidences_in_range]
+
+    bg_ch0_times = get_times_in_energy_range(df_bg, channel=0, energy_range=range0)
+    bg_ch1_times = get_times_in_energy_range(df_bg, channel=1, energy_range=range1)
+
+    exclude_bins=[bin for bin in range(0, 4)]
+
+    corr_matrix, binned_counts = correlate_binned_counts(
+        ch1_times, ch0_times, coin_times, bg_ch1_times, bg_ch0_times,
+        half_life=224.6, t_min=0, t_max=600, N=50,
+        exclude_bins=exclude_bins
+    )
+
+    bins = generate_exponential_bins(half_life=224.6, t_min=0, t_max=600, N=50)
+
+    plot_histograms_for_correlation(binned_counts, bins=bins, exclude_bins=exclude_bins)
+    plot_scatter_matrix(binned_counts, exclude_bins=exclude_bins)
+
+    print("Correlation matrix:")
+    print(corr_matrix)
 
 def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, range1, bin_width_s=3.0):
     ch0_times = get_times_in_energy_range(df_signal, channel=0, energy_range=range0)
@@ -117,8 +142,8 @@ def compute_and_plot_rates(df_signal, df_bg, coincidences_in_range, range0, rang
     print(f"Accumulated activity: ({A_accum:.2f} ± {A_accum_err:.2f}) Bq")
 
 def main():
-    signal_path = r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\AlSurf280um_listmode.txt'
-    background_path = r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\background_listmode.txt'
+    signal_path = [r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\VwithAu\VwithAu_listmode.txt']
+    background_path = [r'Z:\Studenten\Bakhodirov\coincidence_analyzer-1\coincidence_analysis\Detector_data\VandiumHomogen_0\background.txt']
 
     df_signal, df_bg = load_data(signal_path, background_path)
     (coincidences_in_range, range0, range1) = analyze_coincidences(df_signal, df_bg)
