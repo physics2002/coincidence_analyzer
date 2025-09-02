@@ -61,7 +61,7 @@ class CoincidenceAnalyzer:
         if return_delta_t:
             return (dt[mask] * 1e9).values
         else:
-            # Return list of (row_a, row_b) as before
+            # Return list of (row_a, row_b)
             df_a_clean = merged[[f"{col}_a" for col in columns]].copy()
             df_b_clean = merged[[f"{col}_b" for col in columns]].copy()
             df_a_clean.columns = columns
@@ -71,14 +71,3 @@ class CoincidenceAnalyzer:
                 df_a_clean.itertuples(index=False),
                 df_b_clean.itertuples(index=False)
             ))
-
-    def coincidence_rate(self, coincidence_window_ns: float, total_time_s: float = None) -> float:
-        """
-        Estimate coincidence rate (Hz) over total acquisition time.
-        If total_time_s is None, infer it from the last timestamp in the dataset.
-        """
-        if total_time_s is None:
-            total_time_s = self.df["time_s"].max() - self.df["time_s"].min()
-        
-        n_coincidences = len(self.find_coincidences(coincidence_window_ns))
-        return n_coincidences / total_time_s if total_time_s > 0 else 0.0
